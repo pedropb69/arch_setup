@@ -33,3 +33,7 @@ Notes
 Tested on fresh Arch Linux installations.
 
 Recommended to reboot after the script finishes to apply all changes.
+
+## Credits
+
+This script was originally created with the help of ChatGPT (OpenAI) and adapted by the repository owner.
