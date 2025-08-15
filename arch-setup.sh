@@ -2,6 +2,8 @@
 # Arch Linux Setup Script
 # Created with assistance from ChatGPT (OpenAI)
 # Adapted by: pedropb69
+# Usage: bash arch-setup.sh
+# Run on a fresh Arch Linux installation
 
 set -e
 
@@ -52,7 +54,6 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # --- Check internet connection ---
 if ! ping -c 1 archlinux.org &>/dev/null; then
     echo "❌ No internet connection. Please check and try again."
-    # Remove temporary sudo before exiting
     sudo rm /etc/sudoers.d/99_tmp_nopasswd
     rm "$TMP_SUDOERS"
     exit 1
@@ -118,7 +119,10 @@ echo "options hid_apple fnmode=0" | sudo tee /etc/modprobe.d/hid_apple.conf
 sudo mkinitcpio -P
 
 echo "[Extra] Cleaning orphan packages and cache..."
-sudo pacman -Rns $(pacman -Qdtq) --noconfirm || true
+orphans=$(pacman -Qdtq)
+if [ -n "$orphans" ]; then
+    sudo pacman -Rns $orphans --noconfirm
+fi
 yay -Sc --noconfirm
 
 # --- Remove temporary sudo ---
