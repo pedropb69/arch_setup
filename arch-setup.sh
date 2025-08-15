@@ -1,13 +1,19 @@
 #!/bin/bash
 set -e
 
-# --- Funções de instalação ---
+# --- Temporary sudo without password ---
+TMP_SUDOERS=$(mktemp)
+echo "$USER ALL=(ALL) NOPASSWD: /usr/bin/pacman, /usr/bin/yay" > "$TMP_SUDOERS"
+sudo chmod 440 "$TMP_SUDOERS"
+sudo cp "$TMP_SUDOERS" /etc/sudoers.d/99_tmp_nopasswd
+
+# --- Installation functions ---
 install_pacman_pkg() {
     for pkg in "$@"; do
         if pacman -Qi "$pkg" &>/dev/null; then
-            echo "✅ $pkg já instalado (pacman)"
+            echo "✅ $pkg already installed (pacman)"
         else
-            echo "📦 Instalando $pkg..."
+            echo "📦 Installing $pkg..."
             sudo pacman -S --noconfirm "$pkg"
         fi
     done
@@ -16,9 +22,9 @@ install_pacman_pkg() {
 install_yay_pkg() {
     for pkg in "$@"; do
         if yay -Qi "$pkg" &>/dev/null; then
-            echo "✅ $pkg já instalado (yay/AUR)"
+            echo "✅ $pkg already installed (yay/AUR)"
         else
-            echo "📦 Instalando $pkg (yay/AUR)..."
+            echo "📦 Installing $pkg (yay/AUR)..."
             yay -S --noconfirm "$pkg"
         fi
     done
@@ -27,38 +33,41 @@ install_yay_pkg() {
 install_flatpak_pkg() {
     for pkg in "$@"; do
         if flatpak list | grep -q "$pkg"; then
-            echo "✅ $pkg já instalado (flatpak)"
+            echo "✅ $pkg already installed (flatpak)"
         else
-            echo "📦 Instalando $pkg (flatpak)..."
+            echo "📦 Installing $pkg (flatpak)..."
             flatpak install -y flathub "$pkg"
         fi
     done
 }
 
-# --- Manter sessão sudo ativa ---
+# --- Keep sudo session alive ---
 sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-# --- Checar conexão ---
+# --- Check internet connection ---
 if ! ping -c 1 archlinux.org &>/dev/null; then
-    echo "❌ Sem conexão com a internet. Verifique e tente novamente."
+    echo "❌ No internet connection. Please check and try again."
+    # Remove temporary sudo before exiting
+    sudo rm /etc/sudoers.d/99_tmp_nopasswd
+    rm "$TMP_SUDOERS"
     exit 1
 fi
 
-echo "[1/10] Atualizando sistema..."
+echo "[1/10] Updating system..."
 sudo pacman -Syu --noconfirm
 
-echo "[2/10] Instalando utilitários básicos..."
+echo "[2/10] Installing basic utilities..."
 install_pacman_pkg wget curl unzip p7zip unrar htop man-db nano rsync
 
-echo "[3/10] Instalando e configurando UFW + GUFW..."
+echo "[3/10] Installing and configuring UFW + GUFW..."
 install_pacman_pkg ufw gufw
 sudo systemctl enable --now ufw
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw enable
 
-echo "[4/10] Instalando yay..."
+echo "[4/10] Installing yay..."
 if ! command -v yay &>/dev/null; then
     install_pacman_pkg base-devel git
     git clone https://aur.archlinux.org/yay.git
@@ -67,46 +76,50 @@ if ! command -v yay &>/dev/null; then
     cd ..
     rm -rf yay
 else
-    echo "✅ yay já instalado"
+    echo "✅ yay already installed"
 fi
 
-echo "[5/10] Instalando pacotes via yay..."
+echo "[5/10] Installing packages via yay..."
 install_yay_pkg librewolf-bin qimgv-git
 
-echo "[6/10] Instalando Flatpak e ProtonPlus..."
+echo "[6/10] Installing Flatpak and ProtonPlus..."
 install_pacman_pkg flatpak
 install_flatpak_pkg com.vysp3r.ProtonPlus
 
-echo "[7/10] Ativando repositório multilib..."
+echo "[7/10] Enabling multilib repository..."
 if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
     sudo sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
     sudo pacman -Syu --noconfirm
-    echo "✅ multilib ativado"
+    echo "✅ multilib enabled"
 else
-    echo "✅ multilib já está ativo"
+    echo "✅ multilib already enabled"
 fi
 
-echo "[8/10] Instalando programas adicionais..."
+echo "[8/10] Installing additional programs..."
 install_pacman_pkg steam vlc flameshot geany kitty fish libreoffice-fresh okular fastfetch btop
 
-echo "[9/10] Instalando codecs multimídia..."
+echo "[9/10] Installing multimedia codecs..."
 install_pacman_pkg gst-libav gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg
 
-echo "[10/10] Definindo Fish como shell padrão..."
+echo "[10/10] Setting Fish as default shell..."
 if [ "$SHELL" != "/usr/bin/fish" ]; then
     chsh -s /usr/bin/fish
-    echo "✅ Fish definido como shell padrão"
+    echo "✅ Fish set as default shell"
 else
-    echo "✅ Fish já é o shell padrão"
+    echo "✅ Fish is already the default shell"
 fi
 
-echo "[Extra] Corrigindo teclas FN no teclado Apple..."
+echo "[Extra] Fixing Apple keyboard FN keys..."
 echo "options hid_apple fnmode=0" | sudo tee /etc/modprobe.d/hid_apple.conf
 sudo mkinitcpio -P
 
-echo "[Extra] Limpando pacotes órfãos e cache..."
+echo "[Extra] Cleaning orphan packages and cache..."
 sudo pacman -Rns $(pacman -Qdtq) --noconfirm || true
 yay -Sc --noconfirm
 
-echo "✅ Instalação concluída!"
-echo "💡 Recomendo reiniciar o sistema agora para aplicar todas as alterações."
+# --- Remove temporary sudo ---
+sudo rm /etc/sudoers.d/99_tmp_nopasswd
+rm "$TMP_SUDOERS"
+
+echo "✅ Installation completed!"
+echo "💡 It's recommended to reboot the system now to apply all changes."
