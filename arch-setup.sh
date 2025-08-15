@@ -1,4 +1,8 @@
 #!/bin/bash
+# Arch Linux Setup Script
+# Created with assistance from ChatGPT (OpenAI)
+# Adapted by: pedropb69
+
 set -e
 
 # --- Temporary sudo without password ---
