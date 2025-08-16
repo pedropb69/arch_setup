@@ -101,7 +101,7 @@ else
 fi
 
 echo "[8/10] Installing additional programs..."
-install_pacman_pkg steam vlc flameshot geany kitty fish libreoffice-fresh okular fastfetch btop
+install_pacman_pkg steam vlc flameshot geany kitty fish libreoffice-fresh okular fastfetch btop goverlay
 
 echo "[9/10] Installing multimedia codecs..."
 install_pacman_pkg gst-libav gst-plugins-good gst-plugins-bad gst-plugins-ugly ffmpeg
