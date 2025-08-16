@@ -114,20 +114,11 @@ else
     echo "✅ Fish is already the default shell"
 fi
 
+# --- Disable Fish welcome message ---
+fish -c "set -U fish_greeting ''"
+
 echo "[Extra] Fixing Apple keyboard FN keys..."
 echo "options hid_apple fnmode=0" | sudo tee /etc/modprobe.d/hid_apple.conf
 sudo mkinitcpio -P
 
-echo "[Extra] Cleaning orphan packages and cache..."
-orphans=$(pacman -Qdtq)
-if [ -n "$orphans" ]; then
-    sudo pacman -Rns $orphans --noconfirm
-fi
-yay -Sc --noconfirm
-
-# --- Remove temporary sudo ---
-sudo rm -f /etc/sudoers.d/99_tmp_nopasswd
-rm -f "$TMP_SUDOERS"
-
-echo "✅ Installation completed!"
-echo "💡 It's recommended to reboot the system now to apply all changes."
+echo "[Extra] Cleaning orphan packag
