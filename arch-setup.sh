@@ -54,8 +54,8 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # --- Check internet connection ---
 if ! ping -c 1 archlinux.org &>/dev/null; then
     echo "❌ No internet connection. Please check and try again."
-    sudo rm /etc/sudoers.d/99_tmp_nopasswd
-    rm "$TMP_SUDOERS"
+    sudo rm -f /etc/sudoers.d/99_tmp_nopasswd
+    rm -f "$TMP_SUDOERS"
     exit 1
 fi
 
@@ -126,8 +126,8 @@ fi
 yay -Sc --noconfirm
 
 # --- Remove temporary sudo ---
-sudo rm /etc/sudoers.d/99_tmp_nopasswd
-rm "$TMP_SUDOERS"
+sudo rm -f /etc/sudoers.d/99_tmp_nopasswd
+rm -f "$TMP_SUDOERS"
 
 echo "✅ Installation completed!"
 echo "💡 It's recommended to reboot the system now to apply all changes."
